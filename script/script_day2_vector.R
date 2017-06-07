@@ -70,6 +70,106 @@ x <- list(vegetable = list("cabbage", "apple", "carrot"),
 
 str(x)
 
+mod <- lm(lifeExp ~ gdpPercap, data = gapminder_plus)
+str(mod)
+
+
+str(mod[[8]])
+str(mod$df.residual)
+
+mod$qr$qr[1,1]
+
+gapminder_plus %>% 
+  group_by(continent) %>% 
+  summarise(mean_le=mean(lifeExp))
+
+gapminder_plus %>% 
+  group_by(continent) %>% 
+  summarise(mean_le=mean(lifeExp),
+            min_le = min(lifeExp),
+            max_le = max(lifeExp))
+
+
+gapminder_plus %>% 
+  ggplot()+
+  geom_line(mapping=aes(x=year, y=lifeExp, color=continent, group=country))+
+  facet_wrap(~continent)
+
+
+gapminder_plus %>% 
+  ggplot()+
+  geom_line(mapping=aes(x=year, y=lifeExp, color=continent, group=country))+
+  geom_smooth(mapping=aes(x=year, y=lifeExp), method = "lm", color="black")+
+  facetc_wrap(~continent)
+
+
+
+#map(list, function)
+#map(1.3, sqrt)
+
+library(purrr)
+by_country <- gapminder_plus %>% group_by(continent, country) %>% 
+  nest()
+by_country %>% 
+  mutate(model=map(data, ~lm(lifeExp~year, data=.x)))
+
+#by_country$data[[1]]
+
+
+model_by_country <- by_country %>% 
+  mutate(model=map(data, ~lm(lifeExp~year, data=.x))) %>% 
+  mutate(summr=map(model, broom::glance)) %>% 
+unnest(summr)
+
+model_by_country
+
+by_country %>% 
+  mutate(model=map(data, ~lm(lifeExp~year, data=.x))) %>% 
+  mutate(summr=map(model, broom::glance)) %>% 
+  unnest(summr) %>% arrange(r.squared) %>% filter(r.squared<0.6) %>% 
+  ggplot()+
+  geom_jitter(mapping = aes(x=country, y=r.squared))
+
+
+by_country %>% 
+mutate(model=purrr::map(data, ~lm(lifeExp~year, data=.x))) %>% 
+  mutate(summr=map(model, broom::glance)) %>% 
+  unnest(summr) %>% arrange(r.squared) %>% filter(r.squared<0.5) %>% 
+  select(country) %>%  left_join(gapminder_plus)%>%
+  ggplot()+
+  geom_line(mapping = aes(x=year, y=lifeExp, color= country, group=country))
+
+
+
+by_country %>% 
+  mutate(model=purrr::map(data, ~lm(gdpPercap~year, data=.x))) %>% 
+  mutate(summr=map(model, broom::glance)) %>% 
+  unnest(summr) %>% arrange(r.squared) %>% filter(r.squared<0.5) %>% 
+  select(country) %>%  left_join(gapminder_plus)%>%
+  ggplot()+
+  geom_line(mapping = aes(x=year, y=gdpPercap, color= country, group=country))
+
+
+
+##lifeExp~ 
+by_country %>% 
+  mutate(model=purrr::map(data, ~lm(lifeExp~log(gdpPercap), data=.x))) %>% 
+  mutate(summr=map(model, broom::glance)) %>% 
+  unnest(summr) %>% arrange(r.squared) %>% filter(r.squared<0.1) %>% 
+  select(country) %>%  left_join(gapminder_plus)%>%
+  ggplot()+
+  geom_point(mapping = aes(x=log(gdpPercap), y=lifeExp, color= country))
+
+
+save()
+
+
+
+
+
+
+
+
 
 
 
